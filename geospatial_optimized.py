@@ -17,15 +17,22 @@ def geospatial(df_int, spacing, xI, yI, zI):
     - Used slicing instead of array creation where possible
     """
     
-    # OPTIMIZATION 1: Use len() instead of .shape[0] - more memory efficient
-    n_v = len(df_int)
+    # Define constants - use original approach for compatibility
+    n_v = df_int.shape[0]
 
-    # OPTIMIZATION 2: Pre-allocate with specific dtype and use in-place assignment
+    # SAFETY CHECK: Ensure coordinate arrays have sufficient length
+    # The error suggests df_int is filtered but coordinate arrays are full-length
+    min_coord_len = min(len(xI), len(yI), len(zI))
+    if n_v > min_coord_len:
+        raise ValueError(f"df_int has {n_v} elements but coordinate arrays only have {min_coord_len} elements")
+    
+    # OPTIMIZATION: Memory-efficient position matrix creation
     # Original: pos_mat = np.column_stack((zI * spacing[0], yI * spacing[1], xI * spacing[2]))
-    pos_mat = np.empty((n_v, 3), dtype=np.float64)  # Pre-allocate
-    pos_mat[:, 0] = zI * spacing[0]  # In-place assignment
-    pos_mat[:, 1] = yI * spacing[1]  # In-place assignment  
-    pos_mat[:, 2] = xI * spacing[2]  # In-place assignment
+    # Use the first n_v elements of coordinate arrays to match df_int length
+    pos_mat = np.empty((n_v, 3), dtype=np.float64)
+    pos_mat[:, 0] = zI[:n_v] * spacing[0]  # Take only the first n_v elements
+    pos_mat[:, 1] = yI[:n_v] * spacing[1]  # Take only the first n_v elements
+    pos_mat[:, 2] = xI[:n_v] * spacing[2]  # Take only the first n_v elements
 
     if n_v < 2000:
         # OPTIMIZATION 3: Replace inefficient tile/repeat with meshgrid and boolean masking
